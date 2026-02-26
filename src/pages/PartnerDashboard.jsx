@@ -36,17 +36,14 @@ function PartnerDashboard() {
     foodname: '',
     description: '',
     category: '',
-    ingredients: '',
     video: null,
     thumbnail: null,
-    hashtags: '',
-    location: ''
+    hashtags: ''
   })
   const [restaurantData, setRestaurantData] = useState({
     name: '',
     description: '',
-    cuisine: '',
-    location: ''
+    cuisine: ''
   })
   const [restaurantImage, setRestaurantImage] = useState(null)
 
@@ -125,7 +122,7 @@ function PartnerDashboard() {
       formData.append('name', restaurantData.name)
       formData.append('description', restaurantData.description)
       formData.append('cuisine', restaurantData.cuisine)
-      formData.append('location', restaurantData.location)
+
       if (restaurantImage) {
         formData.append('image', restaurantImage)
       }
@@ -235,9 +232,7 @@ function PartnerDashboard() {
       formData.append('description', newReel.description)
       formData.append('price', 0)
       formData.append('category', newReel.category)
-      formData.append('ingredients', newReel.ingredients)
       formData.append('hashtags', newReel.hashtags)
-      formData.append('location', newReel.location)
 
       if (newReel.video) {
         formData.append('video', newReel.video)
@@ -260,11 +255,9 @@ function PartnerDashboard() {
         foodname: '',
         description: '',
         category: '',
-        ingredients: '',
         video: null,
         thumbnail: null,
-        hashtags: '',
-        location: ''
+        hashtags: ''
       })
       fetchFoodItems() // Refresh the list
     } catch (error) {
@@ -411,13 +404,6 @@ function PartnerDashboard() {
                 Set Up Channel
               </button>
             )}
-            <button
-              onClick={() => setShowAddFood(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-slate-700/50 border border-slate-600 hover:bg-slate-600/50 text-slate-200 text-sm font-medium transition-all"
-            >
-              <Plus size={18} />
-              Add Video
-            </button>
             <button
               onClick={() => setShowAddReel(true)}
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 text-purple-400 text-sm font-medium transition-all"
@@ -920,7 +906,7 @@ function PartnerDashboard() {
                     <select
                       value={newFood.category}
                       onChange={(e) => setNewFood(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-white/30"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-white/30"
                       required
                     >
                       <option value="">Select genre</option>
@@ -1093,7 +1079,7 @@ function PartnerDashboard() {
                     <select
                       value={restaurantData.cuisine}
                       onChange={(e) => setRestaurantData(prev => ({ ...prev, cuisine: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-white/30"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-white/30"
                       required
                     >
                       <option value="">Select category</option>
@@ -1108,17 +1094,7 @@ function PartnerDashboard() {
                     </select>
                   </div>
 
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="text-sm text-white/80">Location *</label>
-                    <input
-                      type="text"
-                      value={restaurantData.location}
-                      onChange={(e) => setRestaurantData(prev => ({ ...prev, location: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:border-white/30"
-                      placeholder="Enter your website or social link"
-                      required
-                    />
-                  </div>
+
 
                   <div className="md:col-span-2 space-y-2">
                     <label className="text-sm text-white/80">Description *</label>
@@ -1176,7 +1152,7 @@ function PartnerDashboard() {
                     ) : (
                       <>
                         <Building2 size={18} />
-                        Register Restaurant
+                        Register Channel
                       </>
                     )}
                   </button>
@@ -1209,13 +1185,13 @@ function PartnerDashboard() {
               <form onSubmit={handleAddReel} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <label className="text-sm text-white/80">Food Name *</label>
+                    <label className="text-sm text-white/80">Video title *</label>
                     <input
                       type="text"
                       value={newReel.foodname}
                       onChange={(e) => setNewReel(prev => ({ ...prev, foodname: e.target.value }))}
                       className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:border-white/30"
-                      placeholder="Enter food name"
+                      placeholder="Ente name"
                       required
                     />
                   </div>
@@ -1225,30 +1201,21 @@ function PartnerDashboard() {
                     <select
                       value={newReel.category}
                       onChange={(e) => setNewReel(prev => ({ ...prev, category: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-white/30"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-white/30"
                       required
                     >
                       <option value="">Select category</option>
-                      <option value="Pizza">Pizza</option>
-                      <option value="Burger">Burger</option>
-                      <option value="Pasta">Pasta</option>
-                      <option value="Salad">Salad</option>
-                      <option value="Dessert">Dessert</option>
-                      <option value="Beverage">Beverage</option>
-                      <option value="Appetizer">Appetizer</option>
+                      <option value="Pizza">type1</option>
+                      <option value="Burger">type2</option>
+                      <option value="Pasta">type3</option>
+                      <option value="Salad">type4</option>
+                      <option value="Dessert">type5</option>
+                      <option value="Beverage">type6</option>
+                      <option value="Appetizer">type7</option>
                     </select>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm text-white/80">Location</label>
-                    <input
-                      type="text"
-                      value={newReel.location}
-                      onChange={(e) => setNewReel(prev => ({ ...prev, location: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:border-white/30"
-                      placeholder="Enter location"
-                    />
-                  </div>
+
                 </div>
 
                 <div className="space-y-2">
@@ -1257,34 +1224,13 @@ function PartnerDashboard() {
                     value={newReel.description}
                     onChange={(e) => setNewReel(prev => ({ ...prev, description: e.target.value }))}
                     className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:border-white/30"
-                    placeholder="Enter food description"
+                    placeholder="Enter video description"
                     rows={3}
                     required
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm text-white/80">Ingredients *</label>
-                  <textarea
-                    value={newReel.ingredients}
-                    onChange={(e) => setNewReel(prev => ({ ...prev, ingredients: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:border-white/30"
-                    placeholder="Enter ingredients (comma separated)"
-                    rows={2}
-                    required
-                  />
-                </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm text-white/80">Hashtags</label>
-                  <input
-                    type="text"
-                    value={newReel.hashtags}
-                    onChange={(e) => setNewReel(prev => ({ ...prev, hashtags: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:border-white/30"
-                    placeholder="Enter hashtags (comma separated)"
-                  />
-                </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
@@ -1357,7 +1303,7 @@ function PartnerDashboard() {
                     ) : (
                       <>
                         <Video size={18} />
-                        Add Food Reel
+                        Add Media 
                       </>
                     )}
                   </button>

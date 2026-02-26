@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, MessageCircle, Share, Bookmark, Play, Pause, Volume2, VolumeX, X, Send } from 'lucide-react'
+import { Heart, MessageCircle, Share, Bookmark, Play, Pause, Volume2, VolumeX, X, Send, Maximize, Minimize } from 'lucide-react'
 import GlassCard from '../ui/GlassCard.jsx'
 import api from '../utils/api'
 
@@ -17,7 +17,10 @@ function VideoFeed() {
   const [newComment, setNewComment] = useState('')
   const [videos, setVideos] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showControls, setShowControls] = useState(true)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const videoRef = useRef(null)
+  const controlsTimer = useRef(null)
 
   // Fetch videos from backend
   useEffect(() => {
@@ -255,6 +258,78 @@ function VideoFeed() {
     }
   }
 
+  const [orientationLocked, setOrientationLocked] = useState(false)
+
+  const toggleFullscreen = async () => {
+    const container = document.getElementById('video-player-container')
+    if (!container) return
+    if (document.fullscreenElement) {
+      document.exitFullscreen()
+    } else {
+      await container.requestFullscreen().catch(() => { })
+      // Try native orientation lock first
+      try {
+        if (screen.orientation?.lock) {
+          await screen.orientation.lock('landscape')
+          setOrientationLocked(true)
+          return
+        }
+      } catch (e) { /* not supported, will use CSS fallback */ }
+      setOrientationLocked(false)
+    }
+  }
+
+  // Track fullscreen state
+  useEffect(() => {
+    const onFullscreenChange = () => {
+      const fs = !!document.fullscreenElement
+      setIsFullscreen(fs)
+      if (!fs) {
+        try {
+          if (screen.orientation?.unlock) screen.orientation.unlock()
+        } catch (e) { /* ignore */ }
+        setOrientationLocked(false)
+      }
+    }
+    document.addEventListener('fullscreenchange', onFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
+  }, [])
+
+  // Check if device is in portrait (needs CSS rotation in fullscreen)
+  const needsCssRotation = isFullscreen && !orientationLocked && typeof window !== 'undefined' && window.innerHeight > window.innerWidth
+
+  const fullscreenStyle = needsCssRotation ? {
+    transform: 'rotate(90deg)',
+    transformOrigin: 'center center',
+    width: '100vh',
+    height: '100vw',
+    position: 'fixed',
+    top: '50%',
+    left: '50%',
+    marginTop: 'calc(-50vw)',
+    marginLeft: 'calc(-50vh)',
+  } : {}
+
+  // Auto-hide controls after 3 seconds
+  const resetControlsTimer = () => {
+    if (controlsTimer.current) clearTimeout(controlsTimer.current)
+    setShowControls(true)
+    controlsTimer.current = setTimeout(() => {
+      if (isPlaying) setShowControls(false)
+    }, 3000)
+  }
+
+  const handleVideoTap = (e) => {
+    // Don't toggle if tapping a button
+    if (e.target.closest('button')) return
+    if (showControls) {
+      setShowControls(false)
+      if (controlsTimer.current) clearTimeout(controlsTimer.current)
+    } else {
+      resetControlsTimer()
+    }
+  }
+
   // Ensure video updates correctly when switching items
   useEffect(() => {
     if (!videoRef.current || !videos[currentVideo]) return
@@ -326,8 +401,8 @@ function VideoFeed() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-slate-950" onWheel={onWheel} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div className="relative h-full">
+    <div id="video-player-container" className="h-screen overflow-hidden bg-slate-950" onWheel={onWheel} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="relative h-full" style={fullscreenStyle}>
         {/* Video Container */}
         <div className="relative h-full">
           <AnimatePresence mode="wait">
@@ -337,14 +412,15 @@ function VideoFeed() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.18, ease: 'linear' }}
-              className="relative h-full w-full"
+              className={`relative h-full w-full ${isFullscreen ? 'bg-black' : ''}`}
+              onClick={handleVideoTap}
             >
               {/* Video Element */}
               <video
                 ref={videoRef}
                 key={videos[currentVideo].id}
                 src={videos[currentVideo].videoUrl}
-                className="absolute inset-0 w-full h-full object-cover"
+                className={`absolute inset-0 w-full h-full ${isFullscreen ? 'object-contain' : 'object-cover'}`}
                 autoPlay
                 muted={isMuted}
                 playsInline
@@ -364,36 +440,32 @@ function VideoFeed() {
                 }}
               />
 
-              {/* Video Overlay */}
-              <div className="absolute inset-0 bg-black/30" />
+              {/* Tap overlay — dims only when controls visible */}
+              <div className={`absolute inset-0 transition-opacity duration-300 ${showControls ? 'bg-black/30' : 'bg-transparent'}`} />
 
-              {/* Video Controls */}
-              <div className="absolute inset-0 flex items-center justify-center">
+              {/* Play/Pause center button */}
+              <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <button
-                  onClick={togglePlayPause}
+                  onClick={(e) => { e.stopPropagation(); togglePlayPause(); resetControlsTimer() }}
                   className="p-4 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all"
                 >
                   {isPlaying ? <Pause size={32} className="text-white" /> : <Play size={32} className="text-white" />}
                 </button>
               </div>
 
-              {/* Video Info */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+              {/* Video Info — bottom */}
+              <div className={`absolute bottom-0 left-0 right-0 p-6 text-white transition-all duration-300 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
                 <h3 className="text-xl font-semibold mb-2">{videos[currentVideo].title || videos[currentVideo].foodItem?.name || 'Untitled'}</h3>
                 <p className="text-white/70 text-sm mb-4">{videos[currentVideo].description}</p>
 
-                {/* Hashtags */}
                 {videos[currentVideo].hashtags && videos[currentVideo].hashtags.length > 0 && (
                   <div className="mb-4 flex flex-wrap gap-2">
                     {videos[currentVideo].hashtags.map((tag, index) => (
-                      <span key={index} className="px-2 py-1 rounded-full text-xs bg-white/20 text-white">
-                        {tag}
-                      </span>
+                      <span key={index} className="px-2 py-1 rounded-full text-xs bg-white/20 text-white">{tag}</span>
                     ))}
                   </div>
                 )}
 
-                {/* Location */}
                 {videos[currentVideo].location && (
                   <div className="mb-4 flex items-center gap-2 text-white/80 text-sm">
                     <span>📍</span>
@@ -401,7 +473,6 @@ function VideoFeed() {
                   </div>
                 )}
 
-                {/* Media Item Info */}
                 {videos[currentVideo].foodItem && (
                   <div className="mb-4 p-3 rounded-xl bg-slate-800/60 backdrop-blur-sm border border-slate-700/50">
                     <div>
@@ -416,21 +487,15 @@ function VideoFeed() {
                 {/* Action Buttons */}
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={() => handleLike(videos[currentVideo].id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${likedVideos.has(videos[currentVideo].id)
-                      ? 'bg-red-500 text-white'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                      }`}
+                    onClick={(e) => { e.stopPropagation(); handleLike(videos[currentVideo].id) }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${likedVideos.has(videos[currentVideo].id) ? 'bg-red-500 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
                   >
-                    <Heart
-                      size={20}
-                      fill={likedVideos.has(videos[currentVideo].id) ? 'currentColor' : 'none'}
-                    />
+                    <Heart size={20} fill={likedVideos.has(videos[currentVideo].id) ? 'currentColor' : 'none'} />
                     {videos[currentVideo].likes ?? 0}
                   </button>
 
                   <button
-                    onClick={() => handleShowComments(videos[currentVideo].id)}
+                    onClick={(e) => { e.stopPropagation(); handleShowComments(videos[currentVideo].id) }}
                     className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all"
                   >
                     <MessageCircle size={20} />
@@ -438,7 +503,7 @@ function VideoFeed() {
                   </button>
 
                   <button
-                    onClick={() => handleShare(videos[currentVideo].id)}
+                    onClick={(e) => { e.stopPropagation(); handleShare(videos[currentVideo].id) }}
                     className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all"
                   >
                     <Share size={20} />
@@ -446,24 +511,24 @@ function VideoFeed() {
                   </button>
 
                   <button
-                    onClick={() => handleSave(videos[currentVideo].id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${savedVideos.has(videos[currentVideo].id)
-                      ? 'bg-yellow-500 text-white'
-                      : 'bg-white/20 text-white hover:bg-white/30'
-                      }`}
+                    onClick={(e) => { e.stopPropagation(); handleSave(videos[currentVideo].id) }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${savedVideos.has(videos[currentVideo].id) ? 'bg-yellow-500 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
                   >
-                    <Bookmark
-                      size={20}
-                      fill={savedVideos.has(videos[currentVideo].id) ? 'currentColor' : 'none'}
-                    />
+                    <Bookmark size={20} fill={savedVideos.has(videos[currentVideo].id) ? 'currentColor' : 'none'} />
                   </button>
                 </div>
               </div>
 
-              {/* Volume Control */}
-              <div className="absolute top-4 right-4">
+              {/* Controls - Top Right */}
+              <div className={`absolute top-4 right-4 flex items-center gap-2 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <button
-                  onClick={toggleMute}
+                  onClick={(e) => { e.stopPropagation(); toggleFullscreen() }}
+                  className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all"
+                >
+                  {isFullscreen ? <Minimize size={20} className="text-white" /> : <Maximize size={20} className="text-white" />}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleMute() }}
                   className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all"
                 >
                   {isMuted ? <VolumeX size={20} className="text-white" /> : <Volume2 size={20} className="text-white" />}
