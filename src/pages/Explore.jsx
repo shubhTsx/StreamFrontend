@@ -189,86 +189,102 @@ function Explore() {
           <div className="w-8 h-8 border-2 border-slate-600 border-t-blue-500 rounded-full animate-spin" />
         </div>
       ) : (
-        <div
-          className={
-            viewMode === 'grid'
-              ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6'
-              : 'space-y-2'
-          }
-        >
-          {filteredVideos.map((video) => {
-            const vid = video.id || video._id
-            const thumb = video.thumbnail || video.image
-            const title = video.title || video.foodname
-            const desc = video.description
-            const cat = video.category || video.foodItem?.category
+        selectedCategory !== 'All' ? (
+          // Single category — flat list
+          <div className={viewMode === 'grid' ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-2'}>
+            {filteredVideos.map((video) => {
+              const vid = video.id || video._id
+              const thumb = video.thumbnail || video.image
+              const title = video.title || video.foodname
+              const desc = video.description
 
-            return (
-              <motion.div
-                key={vid}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <GlassCard
-                  variant="file"
-                  className={viewMode === 'list' ? 'p-4 flex items-center gap-4' : 'p-4'}
-                >
-                  <div
-                    className={
-                      viewMode === 'grid'
-                        ? 'aspect-video rounded-lg bg-slate-800 overflow-hidden mb-4 relative group'
-                        : 'w-24 h-16 rounded-lg bg-slate-800 overflow-hidden shrink-0 relative'
-                    }
-                  >
-                    {thumb ? (
-                      <img
-                        src={thumb}
-                        alt={title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Play size={24} className="text-slate-500" />
-                      </div>
-                    )}
-                    <Link to="/videos" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="p-3 rounded-full bg-white/20 hover:bg-white/30">
-                        <Play size={24} className="text-white" />
-                      </span>
-                    </Link>
-                  </div>
-                  <div className={viewMode === 'grid' ? 'space-y-2' : 'flex-1 min-w-0'}>
-                    <h3 className="font-medium text-slate-200 truncate">{title}</h3>
-                    {viewMode === 'grid' && (
-                      <p className="text-sm text-slate-500 line-clamp-2">
-                        {desc}
-                      </p>
-                    )}
-                    {cat && (
-                      <div className="mt-2">
-                        <span className="text-slate-500 text-sm">{cat}</span>
-                      </div>
-                    )}
+              return (
+                <motion.div key={vid} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                  <GlassCard variant="file" className={viewMode === 'list' ? 'p-4 flex items-center gap-4' : 'p-4'}>
+                    <div className={viewMode === 'grid' ? 'aspect-video rounded-lg bg-slate-800 overflow-hidden mb-4 relative group' : 'w-24 h-16 rounded-lg bg-slate-800 overflow-hidden shrink-0 relative'}>
+                      {thumb ? (
+                        <img src={thumb} alt={title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"><Play size={24} className="text-slate-500" /></div>
+                      )}
+                      <Link to="/videos" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="p-3 rounded-full bg-white/20 hover:bg-white/30"><Play size={24} className="text-white" /></span>
+                      </Link>
+                    </div>
+                    <div className={viewMode === 'grid' ? 'space-y-2' : 'flex-1 min-w-0'}>
+                      <h3 className="font-medium text-slate-200 truncate">{title}</h3>
+                      {viewMode === 'grid' && <p className="text-sm text-slate-500 line-clamp-2">{desc}</p>}
+                      <button
+                        onClick={() => handleSave(vid)}
+                        className={`w-full mt-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${savedIds.has(vid) ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border border-slate-600'}`}
+                      >
+                        <Bookmark size={16} fill={savedIds.has(vid) ? 'currentColor' : 'none'} />
+                        {savedIds.has(vid) ? 'Saved' : 'Add to Collection'}
+                      </button>
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              )
+            })}
+          </div>
+        ) : (
+          // All categories — grouped by category
+          <div className="space-y-8">
+            {categories.filter(c => c !== 'All').map((cat) => {
+              const catVideos = videos.filter((v) => (v.category || v.foodItem?.category || 'Other') === cat)
+              if (catVideos.length === 0) return null
+              return (
+                <div key={cat}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-slate-200">{cat}</h3>
                     <button
-                      onClick={() => handleSave(vid)}
-                      className={`w-full mt-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${savedIds.has(vid)
-                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                        : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border border-slate-600'
-                        }`}
+                      onClick={() => setSelectedCategory(cat)}
+                      className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                     >
-                      <Bookmark
-                        size={16}
-                        fill={savedIds.has(vid) ? 'currentColor' : 'none'}
-                      />
-                      {savedIds.has(vid) ? 'Saved' : 'Add to Collection'}
+                      View all →
                     </button>
                   </div>
-                </GlassCard>
-              </motion.div>
-            )
-          })}
-        </div>
+                  <div className={viewMode === 'grid' ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-2'}>
+                    {catVideos.map((video) => {
+                      const vid = video.id || video._id
+                      const thumb = video.thumbnail || video.image
+                      const title = video.title || video.foodname
+                      const desc = video.description
+
+                      return (
+                        <motion.div key={vid} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+                          <GlassCard variant="file" className={viewMode === 'list' ? 'p-4 flex items-center gap-4' : 'p-4'}>
+                            <div className={viewMode === 'grid' ? 'aspect-video rounded-lg bg-slate-800 overflow-hidden mb-4 relative group' : 'w-24 h-16 rounded-lg bg-slate-800 overflow-hidden shrink-0 relative'}>
+                              {thumb ? (
+                                <img src={thumb} alt={title} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center"><Play size={24} className="text-slate-500" /></div>
+                              )}
+                              <Link to="/videos" className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="p-3 rounded-full bg-white/20 hover:bg-white/30"><Play size={24} className="text-white" /></span>
+                              </Link>
+                            </div>
+                            <div className={viewMode === 'grid' ? 'space-y-2' : 'flex-1 min-w-0'}>
+                              <h3 className="font-medium text-slate-200 truncate">{title}</h3>
+                              {viewMode === 'grid' && <p className="text-sm text-slate-500 line-clamp-2">{desc}</p>}
+                              <button
+                                onClick={() => handleSave(vid)}
+                                className={`w-full mt-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${savedIds.has(vid) ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border border-slate-600'}`}
+                              >
+                                <Bookmark size={16} fill={savedIds.has(vid) ? 'currentColor' : 'none'} />
+                                {savedIds.has(vid) ? 'Saved' : 'Add to Collection'}
+                              </button>
+                            </div>
+                          </GlassCard>
+                        </motion.div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )
       )}
 
       {filteredVideos.length === 0 && !loading && (

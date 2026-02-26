@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Plus, Edit, Trash2, Eye, Star, Clock, DollarSign, Upload, X, Video, Image, Save, Building2, Hash, MapPin, CheckCircle, XCircle, Users, RefreshCw } from 'lucide-react'
+import { Plus, Edit, Trash2, Eye, EyeOff, Star, Clock, DollarSign, Upload, X, Video, Image, Save, Building2, Hash, MapPin, CheckCircle, XCircle, Users, RefreshCw } from 'lucide-react'
 import GlassCard from '../ui/GlassCard.jsx'
 import api from '../utils/api'
 
@@ -21,6 +21,8 @@ function PartnerDashboard() {
   const [subLoading, setSubLoading] = useState(false)
   const [rejectReasonId, setRejectReasonId] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
+  const [editingItem, setEditingItem] = useState(null)
+  const [editForm, setEditForm] = useState({ foodname: '', description: '', category: '', ingredients: '' })
   const [newFood, setNewFood] = useState({
     foodname: '',
     description: '',
@@ -273,18 +275,61 @@ function PartnerDashboard() {
   }
 
   const handleDeleteFood = async (foodId) => {
-    if (window.confirm('Are you sure you want to delete this food item?')) {
+    if (window.confirm('Are you sure you want to delete this video?')) {
       try {
         const token = localStorage.getItem('token')
         await api.delete(`/food/${foodId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         })
-        fetchFoodItems() // Refresh the list
+        fetchFoodItems()
       } catch (error) {
-        alert('Error deleting video.')
+        alert(error.response?.data?.message || 'Error deleting video.')
       }
+    }
+  }
+
+  const handleToggleVisibility = async (foodId) => {
+    try {
+      const token = localStorage.getItem('token')
+      const res = await api.patch(`/food/${foodId}/visibility`, {}, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      alert(res.data.message)
+      fetchFoodItems()
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error toggling visibility.')
+    }
+  }
+
+  const openEditModal = (item) => {
+    setEditingItem(item)
+    setEditForm({
+      foodname: item.foodname || '',
+      description: item.description || '',
+      category: item.category || '',
+      ingredients: item.ingredients || ''
+    })
+  }
+
+  const handleEditFood = async (e) => {
+    e.preventDefault()
+    if (!editingItem) return
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('token')
+      await api.patch(`/food/${editingItem._id}`, editForm, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      alert('Video updated successfully!')
+      setEditingItem(null)
+      fetchFoodItems()
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error updating video.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -337,7 +382,6 @@ function PartnerDashboard() {
     { id: 'dashboard', name: 'Overview', icon: '📊' },
     { id: 'subscriptions', name: 'Subscriptions', icon: '💳' },
     { id: 'restaurant', name: 'Collection', icon: '🏪' },
-    { id: 'foods', name: 'Items', icon: '📁' },
     { id: 'reels', name: 'Media', icon: '🎬' },
     { id: 'orders', name: 'Transfers', icon: '📋' },
     { id: 'analytics', name: 'Analytics', icon: '📈' }
@@ -544,127 +588,114 @@ function PartnerDashboard() {
           </div>
         )}
 
-        {/* Foods Tab */}
-        {activeTab === 'foods' && (
-          <div className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-200">Videos</h2>
-              <button
-                onClick={() => setShowAddFood(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600 hover:bg-slate-600/50 text-slate-200 text-sm font-medium transition-all"
-              >
-                <Plus size={18} />
-                Add Video
-              </button>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {foodItems.map((food) => (
-                <GlassCard key={food.id} className="p-6">
-                  <div className="aspect-video rounded-xl bg-white/5 mb-4 overflow-hidden">
-                    <img src={food.image} alt={food.foodname} className="w-full h-full object-cover" />
-                  </div>
-                  <h3 className="text-lg font-semibold mb-2">{food.foodname}</h3>
-                  <p className="text-white/70 text-sm mb-2">{food.category}</p>
-                  <p className="text-white/60 text-sm mb-4 line-clamp-2">{food.description}</p>
 
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-1">
-                      <Star size={16} className="text-yellow-400 fill-current" />
-                      <span className="text-sm">{food.rating}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mb-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${food.isAvailable ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                      }`}>
-                      {food.isAvailable ? 'Available' : 'Unavailable'}
-                    </span>
-                    <span className="text-white/60 text-sm">{food.orders} views</span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <button className="flex-1 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all">
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteFood(food.id)}
-                      className="flex-1 p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-all"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                    <button className="flex-1 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all">
-                      <Eye size={16} />
-                    </button>
-                  </div>
-                </GlassCard>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reels Tab */}
+        {/* Media Tab */}
         {activeTab === 'reels' && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold text-slate-200">Media</h2>
-              <button
-                onClick={() => setShowAddReel(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 text-purple-400 text-sm font-medium transition-all"
-              >
-                <Video size={18} />
-                Add Media
-              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAddFood(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600 hover:bg-slate-600/50 text-slate-200 text-sm font-medium transition-all"
+                >
+                  <Plus size={18} />
+                  Add Video
+                </button>
+                <button
+                  onClick={() => setShowAddReel(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-500/20 border border-purple-500/30 hover:bg-purple-500/30 text-purple-400 text-sm font-medium transition-all"
+                >
+                  <Video size={18} />
+                  Add Media
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {foodItems.filter(food => food.isReel).map((reel) => (
-                <GlassCard key={reel.id} className="p-6">
-                  <div className="aspect-video rounded-xl bg-white/5 mb-4 overflow-hidden">
-                    <video
-                      src={reel.video}
-                      className="w-full h-full object-cover"
-                      poster={reel.thumbnail}
-                    />
+              {foodItems.map((item) => (
+                <GlassCard key={item._id} className={`p-6 ${!item.isAvailable ? 'opacity-50' : ''}`}>
+                  <div className="aspect-video rounded-xl bg-white/5 mb-4 overflow-hidden relative">
+                    {item.video ? (
+                      <video src={item.video} className="w-full h-full object-cover" poster={item.thumbnail} />
+                    ) : item.thumbnail ? (
+                      <img src={item.thumbnail} alt={item.foodname} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-600">
+                        <Video size={32} />
+                      </div>
+                    )}
+                    {!item.isAvailable && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="px-3 py-1 rounded-full text-xs bg-red-500/30 text-red-400 font-medium">Hidden</span>
+                      </div>
+                    )}
+                    {item.isReel && (
+                      <span className="absolute top-2 left-2 px-2 py-1 rounded-full text-xs bg-purple-500/30 text-purple-400">Reel</span>
+                    )}
                   </div>
-                  <h3 className="text-lg font-semibold mb-2">{reel.foodname}</h3>
-                  <p className="text-white/70 text-sm mb-2">{reel.category}</p>
-                  <p className="text-white/60 text-sm mb-4 line-clamp-2">{reel.description}</p>
+                  <h3 className="text-lg font-semibold mb-1 truncate">{item.foodname}</h3>
+                  <p className="text-slate-400 text-sm mb-1">{item.category}</p>
+                  <p className="text-slate-500 text-sm mb-3 line-clamp-2">{item.description}</p>
 
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-1">
-                      <Star size={16} className="text-yellow-400 fill-current" />
-                      <span className="text-sm">{reel.likes || 0}</span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 text-sm text-slate-400">
+                        <Star size={14} className="text-yellow-400 fill-current" />
+                        {item.likes || 0}
+                      </span>
                     </div>
+                    <span className={`px-2 py-1 rounded-full text-xs ${item.isAvailable ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {item.isAvailable ? 'Visible' : 'Hidden'}
+                    </span>
                   </div>
 
-                  {reel.reelData?.hashtags && (
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {reel.reelData.hashtags.map((tag, index) => (
-                        <span key={index} className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">
-                          #{tag}
-                        </span>
+                  {item.reelData?.hashtags?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {item.reelData.hashtags.map((tag, index) => (
+                        <span key={index} className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-400">#{tag}</span>
                       ))}
                     </div>
                   )}
 
                   <div className="flex gap-2">
-                    <button className="flex-1 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all">
-                      <Edit size={16} />
+                    <button
+                      onClick={() => openEditModal(item)}
+                      className="flex-1 p-2 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 transition-all flex items-center justify-center gap-1 text-sm"
+                      title="Edit details"
+                    >
+                      <Edit size={15} />
+                      Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteFood(reel.id)}
-                      className="flex-1 p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 transition-all"
+                      onClick={() => handleDeleteFood(item._id)}
+                      className="flex-1 p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all flex items-center justify-center gap-1 text-sm"
+                      title="Delete"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={15} />
+                      Delete
                     </button>
-                    <button className="flex-1 p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all">
-                      <Eye size={16} />
+                    <button
+                      onClick={() => handleToggleVisibility(item._id)}
+                      className={`flex-1 p-2 rounded-lg transition-all flex items-center justify-center gap-1 text-sm ${item.isAvailable ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-400' : 'bg-green-500/10 hover:bg-green-500/20 text-green-400'}`}
+                      title={item.isAvailable ? 'Hide' : 'Show'}
+                    >
+                      {item.isAvailable ? <EyeOff size={15} /> : <Eye size={15} />}
+                      {item.isAvailable ? 'Hide' : 'Show'}
                     </button>
                   </div>
                 </GlassCard>
               ))}
             </div>
+
+            {foodItems.length === 0 && (
+              <GlassCard className="p-12 text-center">
+                <Video size={48} className="mx-auto mb-4 text-slate-600" />
+                <p className="text-slate-400 mb-2">No media uploaded yet</p>
+                <p className="text-slate-600 text-sm">Click "Add Video" or "Add Media" to get started</p>
+              </GlassCard>
+            )}
           </div>
         )}
 
@@ -1327,6 +1358,105 @@ function PartnerDashboard() {
                       <>
                         <Video size={18} />
                         Add Food Reel
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </GlassCard>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Edit Item Modal */}
+      {editingItem && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-lg"
+          >
+            <GlassCard className="p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-slate-200">Edit Video Details</h2>
+                <button
+                  onClick={() => setEditingItem(null)}
+                  className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-all"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditFood} className="space-y-5">
+                <div className="space-y-2">
+                  <label className="text-sm text-slate-400">Title</label>
+                  <input
+                    type="text"
+                    value={editForm.foodname}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, foodname: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm text-slate-400">Description</label>
+                  <textarea
+                    value={editForm.description}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+                    rows={3}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm text-slate-400">Category</label>
+                    <select
+                      value={editForm.category}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-200 focus:outline-none focus:border-blue-500/50"
+                    >
+                      <option value="">Select</option>
+                      <option value="Entertainment">Entertainment</option>
+                      <option value="Education">Education</option>
+                      <option value="Music">Music</option>
+                      <option value="Gaming">Gaming</option>
+                      <option value="Vlog">Vlog</option>
+                      <option value="Tutorial">Tutorial</option>
+                      <option value="Comedy">Comedy</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm text-slate-400">Tags</label>
+                    <input
+                      type="text"
+                      value={editForm.ingredients}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, ingredients: e.target.value }))}
+                      className="w-full px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700 text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500/50"
+                      placeholder="Comma separated"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-4 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditingItem(null)}
+                    className="flex-1 px-6 py-3 rounded-xl bg-slate-800/50 border border-slate-700 hover:bg-slate-700/50 text-slate-300 transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 px-6 py-3 rounded-xl bg-blue-500/20 border border-blue-500/30 hover:bg-blue-500/30 text-blue-400 font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={18} />
+                        Save Changes
                       </>
                     )}
                   </button>

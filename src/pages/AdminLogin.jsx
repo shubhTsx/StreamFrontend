@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import GlassCard from '../ui/GlassCard.jsx'
 import { motion } from 'framer-motion'
-import { Mail, Lock, Shield, Eye, EyeOff, Key } from 'lucide-react'
+import { Mail, Lock, Shield, Eye, EyeOff, Key, User, Phone, MapPin, UserPlus } from 'lucide-react'
 import api from '../utils/api'
 import { useNavigate } from 'react-router-dom'
 import { authEvents } from '../utils/authEvents'
 
 function AdminLogin() {
+    const [mode, setMode] = useState('login') // 'login' or 'register'
     const [loading, setLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState('')
+    const [success, setSuccess] = useState('')
     const navigate = useNavigate()
 
     const handleAdminLogin = async (e) => {
@@ -42,6 +44,46 @@ function AdminLogin() {
         }
     }
 
+    const handleAdminRegister = async (e) => {
+        e.preventDefault()
+        setLoading(true)
+        setError('')
+        setSuccess('')
+
+        const formData = new FormData(e.target)
+        const data = Object.fromEntries(formData)
+
+        if (data.password !== data.confirmPassword) {
+            setError('Passwords do not match.')
+            setLoading(false)
+            return
+        }
+
+        try {
+            const response = await api.post('/foodPartner/register', {
+                name: data.name,
+                email: data.email,
+                password: data.password,
+                contactName: data.contactName,
+                phone: data.phone,
+                address: data.address,
+                adminCode: data.adminCode
+            })
+
+            setSuccess(response.data.message || 'Account created! You can now sign in.')
+            e.target.reset()
+            // Switch to login after 2 seconds
+            setTimeout(() => {
+                setMode('login')
+                setSuccess('')
+            }, 2000)
+        } catch (err) {
+            setError(err.response?.data?.message || 'Registration failed. Please try again.')
+        } finally {
+            setLoading(false)
+        }
+    }
+
     const inputClass = "w-full pl-9 pr-4 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500/50"
 
     return (
@@ -58,54 +100,191 @@ function AdminLogin() {
                 <p className="text-slate-500 text-sm">Authorized personnel only</p>
             </motion.div>
 
+            {/* Mode Toggle */}
+            <div className="flex gap-2 mb-5">
+                <button
+                    onClick={() => { setMode('login'); setError(''); setSuccess('') }}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${mode === 'login'
+                        ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
+                        : 'bg-slate-800/50 text-slate-500 border border-slate-700 hover:bg-slate-700/50'
+                        }`}
+                >
+                    Sign In
+                </button>
+                <button
+                    onClick={() => { setMode('register'); setError(''); setSuccess('') }}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${mode === 'register'
+                        ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
+                        : 'bg-slate-800/50 text-slate-500 border border-slate-700 hover:bg-slate-700/50'
+                        }`}
+                >
+                    Create Account
+                </button>
+            </div>
+
             {error && (
                 <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
                     className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-center text-sm"
                 >{error}</motion.div>
             )}
 
-            <GlassCard className="p-6">
-                <form onSubmit={handleAdminLogin} className="space-y-4">
-                    <div>
-                        <label className="text-sm text-slate-500">Admin Code</label>
-                        <div className="relative mt-1">
-                            <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                            <input
-                                type="password" name="adminCode" required className={inputClass}
-                                placeholder="Enter admin access code"
-                            />
+            {success && (
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-center text-sm"
+                >{success}</motion.div>
+            )}
+
+            {/* Login Form */}
+            {mode === 'login' && (
+                <GlassCard className="p-6">
+                    <form onSubmit={handleAdminLogin} className="space-y-4">
+                        <div>
+                            <label className="text-sm text-slate-500">Admin Code</label>
+                            <div className="relative mt-1">
+                                <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <input
+                                    type="password" name="adminCode" required className={inputClass}
+                                    placeholder="Enter admin access code"
+                                />
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <label className="text-sm text-slate-500">Email</label>
-                        <div className="relative mt-1">
-                            <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                            <input type="email" name="email" required className={inputClass} placeholder="Enter admin email" />
+                        <div>
+                            <label className="text-sm text-slate-500">Email</label>
+                            <div className="relative mt-1">
+                                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <input type="email" name="email" required className={inputClass} placeholder="Enter admin email" />
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <label className="text-sm text-slate-500">Password</label>
-                        <div className="relative mt-1">
-                            <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                            <input
-                                type={showPassword ? "text" : "password"} name="password" required
-                                className="w-full pl-9 pr-10 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500/50"
-                                placeholder="Enter admin password"
-                            />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
-                            >
-                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </button>
+                        <div>
+                            <label className="text-sm text-slate-500">Password</label>
+                            <div className="relative mt-1">
+                                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <input
+                                    type={showPassword ? "text" : "password"} name="password" required
+                                    className="w-full pl-9 pr-10 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500/50"
+                                    placeholder="Enter admin password"
+                                />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
+                                >
+                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                    <button type="submit" disabled={loading}
-                        className="w-full py-2.5 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 text-white font-semibold text-sm transition-all shadow-lg shadow-violet-500/20"
-                    >
-                        {loading ? 'Authenticating...' : 'Sign In as Admin'}
-                    </button>
-                </form>
-            </GlassCard>
+                        <button type="submit" disabled={loading}
+                            className="w-full py-2.5 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 text-white font-semibold text-sm transition-all shadow-lg shadow-violet-500/20"
+                        >
+                            {loading ? 'Authenticating...' : 'Sign In as Admin'}
+                        </button>
+                    </form>
+                </GlassCard>
+            )}
+
+            {/* Register Form */}
+            {mode === 'register' && (
+                <GlassCard className="p-6">
+                    <form onSubmit={handleAdminRegister} className="space-y-4">
+                        <div>
+                            <label className="text-sm text-slate-500">Admin Code *</label>
+                            <div className="relative mt-1">
+                                <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <input
+                                    type="password" name="adminCode" required className={inputClass}
+                                    placeholder="Enter admin access code"
+                                />
+                            </div>
+                            <p className="text-xs text-slate-600 mt-1">Required to create an admin account</p>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-sm text-slate-500">Channel Name *</label>
+                                <div className="relative mt-1">
+                                    <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                    <input type="text" name="name" required className={inputClass} placeholder="Channel name" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-sm text-slate-500">Your Name *</label>
+                                <div className="relative mt-1">
+                                    <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                    <input type="text" name="contactName" required className={inputClass} placeholder="Your name" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-sm text-slate-500">Email *</label>
+                            <div className="relative mt-1">
+                                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <input type="email" name="email" required className={inputClass} placeholder="Admin email" />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="text-sm text-slate-500">Phone</label>
+                                <div className="relative mt-1">
+                                    <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                    <input type="tel" name="phone" className={inputClass} placeholder="Phone number" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-sm text-slate-500">Location</label>
+                                <div className="relative mt-1">
+                                    <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                    <input type="text" name="address" className={inputClass} placeholder="City / Location" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-sm text-slate-500">Password *</label>
+                            <div className="relative mt-1">
+                                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <input
+                                    type={showPassword ? "text" : "password"} name="password" required minLength={6}
+                                    className="w-full pl-9 pr-10 py-2.5 rounded-lg bg-slate-800/50 border border-slate-700 text-slate-200 placeholder-slate-500 text-sm focus:outline-none focus:border-violet-500/50"
+                                    placeholder="Create a password (min 6 chars)"
+                                />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-400"
+                                >
+                                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-sm text-slate-500">Confirm Password *</label>
+                            <div className="relative mt-1">
+                                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                <input
+                                    type={showPassword ? "text" : "password"} name="confirmPassword" required minLength={6}
+                                    className={inputClass}
+                                    placeholder="Confirm your password"
+                                />
+                            </div>
+                        </div>
+
+                        <button type="submit" disabled={loading}
+                            className="w-full py-2.5 rounded-lg bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 text-white font-semibold text-sm transition-all shadow-lg shadow-violet-500/20 flex items-center justify-center gap-2"
+                        >
+                            {loading ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Creating Account...
+                                </>
+                            ) : (
+                                <>
+                                    <UserPlus size={16} />
+                                    Create Admin Account
+                                </>
+                            )}
+                        </button>
+                    </form>
+                </GlassCard>
+            )}
         </div>
     )
 }
