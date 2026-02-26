@@ -39,7 +39,6 @@ function Explore() {
       const reels = Array.isArray(data) ? data : (data.reels || data.videos || [])
       setVideos(reels)
     } catch (error) {
-      console.error('Error fetching videos:', error)
       setVideos([])
     } finally {
       setLoading(false)
@@ -56,7 +55,6 @@ function Explore() {
       const saved = (response.data.savedItems || []).map((s) => s._id || s.id)
       setSavedIds(new Set(saved))
     } catch (err) {
-      console.error('Error fetching saved:', err)
     }
   }
 
@@ -73,7 +71,6 @@ function Explore() {
       const results = response.data.results || []
       setVideos(results.filter((r) => r.isReel !== false))
     } catch (error) {
-      console.error('Error searching:', error)
     } finally {
       setLoading(false)
     }
@@ -96,7 +93,6 @@ function Explore() {
         return next
       })
     } catch (err) {
-      console.error(err)
       alert(err.response?.data?.message || 'Failed to save')
     }
   }
@@ -158,8 +154,8 @@ function Explore() {
               key={id}
               onClick={() => setSelectedCategory(id)}
               className={`px-4 py-2 rounded-lg whitespace-nowrap text-sm transition-all ${selectedCategory === id
-                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                  : 'bg-slate-800/50 text-slate-400 border border-slate-700 hover:bg-slate-700/50'
+                ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                : 'bg-slate-800/50 text-slate-400 border border-slate-700 hover:bg-slate-700/50'
                 }`}
             >
               {label}
@@ -170,8 +166,8 @@ function Explore() {
           <button
             onClick={() => setViewMode('grid')}
             className={`p-2 rounded-lg transition-colors ${viewMode === 'grid'
-                ? 'bg-blue-500/20 text-blue-400'
-                : 'bg-slate-800/50 text-slate-500 hover:text-slate-300'
+              ? 'bg-blue-500/20 text-blue-400'
+              : 'bg-slate-800/50 text-slate-500 hover:text-slate-300'
               }`}
           >
             <Grid3X3 size={18} />
@@ -179,8 +175,8 @@ function Explore() {
           <button
             onClick={() => setViewMode('list')}
             className={`p-2 rounded-lg transition-colors ${viewMode === 'list'
-                ? 'bg-blue-500/20 text-blue-400'
-                : 'bg-slate-800/50 text-slate-500 hover:text-slate-300'
+              ? 'bg-blue-500/20 text-blue-400'
+              : 'bg-slate-800/50 text-slate-500 hover:text-slate-300'
               }`}
           >
             <List size={18} />
@@ -257,8 +253,8 @@ function Explore() {
                     <button
                       onClick={() => handleSave(vid)}
                       className={`w-full mt-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${savedIds.has(vid)
-                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                          : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border border-slate-600'
+                        ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                        : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border border-slate-600'
                         }`}
                     >
                       <Bookmark

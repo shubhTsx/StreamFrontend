@@ -51,7 +51,6 @@ function VideoFeed() {
       const reels = Array.isArray(data) ? data : (data.reels || data.videos || [])
       setVideos(reels)
     } catch (error) {
-      console.error('Error fetching reels:', error)
       setVideos([])
     } finally {
       setLoading(false)
@@ -91,7 +90,7 @@ function VideoFeed() {
           : video
       ))
     } catch (error) {
-      console.error('Error liking video:', error)
+      // Silently handle
     }
   }
 
@@ -121,7 +120,7 @@ function VideoFeed() {
         return newSet
       })
     } catch (error) {
-      console.error('Error saving video:', error)
+      // Silently handle
     }
   }
 
@@ -158,7 +157,7 @@ function VideoFeed() {
 
         setNewComment('')
       } catch (error) {
-        console.error('Error posting comment:', error)
+        // Silently handle
       }
     }
   }
@@ -171,7 +170,7 @@ function VideoFeed() {
         [videoId]: response.data.comments || []
       }))
     } catch (error) {
-      console.error('Error fetching comments:', error)
+      // Silently handle
     }
   }
 
@@ -197,11 +196,8 @@ function VideoFeed() {
       // Copy link to clipboard
       const videoUrl = `${window.location.origin}/videos/${videoId}`
       await navigator.clipboard.writeText(videoUrl)
-
-      // You could show a toast notification here
-      console.log('Link copied to clipboard!')
     } catch (error) {
-      console.error('Error sharing video:', error)
+      // Silently handle
     }
   }
 
@@ -263,7 +259,6 @@ function VideoFeed() {
   useEffect(() => {
     if (!videoRef.current || !videos[currentVideo]) return
     try {
-      console.log('Switching to video:', videos[currentVideo].videoUrl)
       // Reset the media element source and playback based on isPlaying
       videoRef.current.muted = isMuted
       videoRef.current.load() // Force reload the video
@@ -271,9 +266,8 @@ function VideoFeed() {
         if (isPlaying) {
           try {
             await videoRef.current.play()
-            console.log('Video playing successfully')
           } catch (err) {
-            console.log('Play failed:', err)
+            // Play was prevented (autoplay policy)
           }
         } else {
           videoRef.current.pause()
@@ -282,7 +276,7 @@ function VideoFeed() {
       // Small delay to ensure video is loaded
       setTimeout(playIfNeeded, 100)
     } catch (err) {
-      console.log('Video switch error:', err)
+      // Silently handle video switch errors
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentVideo])
@@ -356,21 +350,16 @@ function VideoFeed() {
                 playsInline
                 loop
                 controls={false}
-                onLoadStart={() => console.log('Video load started:', videos[currentVideo].videoUrl)}
-                onLoadedData={() => console.log('Video data loaded:', videos[currentVideo].videoUrl)}
                 onLoadedMetadata={() => {
-                  console.log('Video metadata loaded:', videos[currentVideo].videoUrl)
                   try {
                     if (isPlaying && videoRef.current) {
-                      videoRef.current.play().catch((err) => console.log('Play error:', err))
+                      videoRef.current.play().catch(() => { })
                     }
-                  } catch (err) { console.log('Metadata error:', err) }
+                  } catch (err) { /* ignore */ }
                 }}
-                onError={(e) => console.error('Video error:', e, videos[currentVideo].videoUrl)}
                 onCanPlay={() => {
-                  console.log('Video can play:', videos[currentVideo].videoUrl)
                   if (videoRef.current && isPlaying) {
-                    videoRef.current.play().catch(console.error)
+                    videoRef.current.play().catch(() => { })
                   }
                 }}
               />

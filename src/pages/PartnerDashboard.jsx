@@ -80,7 +80,6 @@ function PartnerDashboard() {
       const response = await api.get('/food/items')
       setFoodItems(response.data.foodItems || [])
     } catch (error) {
-      console.error('Error fetching videos:', error)
       setFoodItems([])
     }
   }
@@ -95,7 +94,7 @@ function PartnerDashboard() {
       })
       setPartnerProfile(response.data.foodPartner)
     } catch (error) {
-      console.error('Error fetching partner profile:', error)
+      // Silently handle
     }
   }
 
@@ -110,7 +109,7 @@ function PartnerDashboard() {
       setDashboardStats(response.data.stats)
       setRecentOrders(response.data.recentOrders || [])
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error)
+      // Silently handle
     }
   }
 
@@ -136,7 +135,7 @@ function PartnerDashboard() {
         }
       })
 
-      console.log('Channel registered successfully:', response.data)
+
       alert('Channel set up successfully!')
       setShowRestaurantForm(false)
       setRestaurantData({
@@ -148,7 +147,6 @@ function PartnerDashboard() {
       setRestaurantImage(null)
       fetchPartnerProfile() // Refresh profile
     } catch (error) {
-      console.error('Error setting up channel:', error)
       const errorMessage = error.response?.data?.message || 'Error setting up channel. Please try again.'
       alert(errorMessage)
     } finally {
@@ -188,7 +186,7 @@ function PartnerDashboard() {
         }
       })
 
-      console.log('Video added successfully:', response.data)
+
       alert('Video added successfully!')
       setShowAddFood(false)
       setNewFood({
@@ -202,7 +200,6 @@ function PartnerDashboard() {
       })
       fetchFoodItems() // Refresh the list
     } catch (error) {
-      console.error('Error adding video:', error)
       const errorMessage = error.response?.data?.message || 'Error adding video. Please try again.'
       alert(errorMessage)
     } finally {
@@ -255,7 +252,7 @@ function PartnerDashboard() {
         }
       })
 
-      console.log('Food reel added successfully:', response.data)
+
       setShowAddReel(false)
       setNewReel({
         foodname: '',
@@ -269,7 +266,6 @@ function PartnerDashboard() {
       })
       fetchFoodItems() // Refresh the list
     } catch (error) {
-      console.error('Error adding video:', error)
       alert('Error adding video. Please try again.')
     } finally {
       setLoading(false)
@@ -287,7 +283,6 @@ function PartnerDashboard() {
         })
         fetchFoodItems() // Refresh the list
       } catch (error) {
-        console.error('Error deleting video:', error)
         alert('Error deleting video.')
       }
     }
@@ -303,7 +298,6 @@ function PartnerDashboard() {
       setPendingSubscriptions(pendingRes.data.subscriptions || [])
       setAllSubscriptions(allRes.data.subscriptions || [])
     } catch (error) {
-      console.error('Error fetching subscriptions:', error)
     }
   }
 
@@ -316,7 +310,6 @@ function PartnerDashboard() {
       })
       fetchSubscriptions()
     } catch (error) {
-      console.error('Error approving subscription:', error)
       alert(error.response?.data?.message || 'Failed to approve')
     } finally {
       setSubLoading(false)
@@ -334,7 +327,6 @@ function PartnerDashboard() {
       setRejectReason('')
       fetchSubscriptions()
     } catch (error) {
-      console.error('Error rejecting subscription:', error)
       alert(error.response?.data?.message || 'Failed to reject')
     } finally {
       setSubLoading(false)

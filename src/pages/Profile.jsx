@@ -71,7 +71,6 @@ function Profile() {
       localStorage.setItem('user', JSON.stringify(updatedUser))
       authEvents.emit({ user: updatedUser, userType })
     } catch (err) {
-      console.error('Profile picture upload failed:', err)
       alert('Failed to upload profile picture. Please try again.')
     } finally {
       setUploadingPic(false)

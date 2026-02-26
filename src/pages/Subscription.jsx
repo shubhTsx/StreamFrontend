@@ -47,7 +47,6 @@ function Subscription() {
                 }))
             }
         } catch (err) {
-            console.error('Fetch subscription status error:', err)
             setStatus('none')
         }
     }
@@ -100,7 +99,6 @@ function Subscription() {
 
             fetchSubscriptionStatus()
         } catch (err) {
-            console.error('Submit subscription error:', err)
             setError(err.response?.data?.message || 'Failed to submit. Please try again.')
         } finally {
             setLoading(false)

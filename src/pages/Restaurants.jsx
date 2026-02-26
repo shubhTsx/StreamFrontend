@@ -29,7 +29,6 @@ function Restaurants() {
       setSavedVideos(saved.filter((s) => s.isReel !== false || s.video))
       setSavedIds(new Set(saved.map((s) => s._id || s.id)))
     } catch (error) {
-      console.error('Error fetching collections:', error)
       setSavedVideos([])
     } finally {
       setLoading(false)
@@ -50,7 +49,6 @@ function Restaurants() {
         return next
       })
     } catch (err) {
-      console.error(err)
     }
   }
 
