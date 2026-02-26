@@ -312,8 +312,8 @@ function Subscription() {
                         <div className="aspect-square max-w-[240px] mx-auto rounded-2xl bg-white p-4 mb-4">
                             <div className="w-full h-full rounded-lg bg-slate-100 flex items-center justify-center">
                                 <div className="text-center">
-                                    <QrCode size={80} className="text-slate-800 mx-auto mb-2" />
-                                    <p className="text-slate-600 text-xs font-medium">Scan to Pay</p>
+                                    <img src='images/qr.png' alt='qr image' className="size-42 mx-auto mt-5 mb-2" />
+                                    <p className="text-slate-600 text-xs font-medium ">Scan to Pay</p>
                                     <p className="text-slate-500 text-[10px] mt-1">UPI QR Code</p>
                                 </div>
                             </div>
