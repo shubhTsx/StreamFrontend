@@ -21,9 +21,13 @@ function VideoFeed() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [infoExpanded, setInfoExpanded] = useState(false)
   const [infoMaxExpanded, setInfoMaxExpanded] = useState(false)
+  const [videoProgress, setVideoProgress] = useState(0)
+  const [videoDuration, setVideoDuration] = useState(0)
+  const [isSeeking, setIsSeeking] = useState(false)
   const videoRef = useRef(null)
   const controlsTimer = useRef(null)
   const infoBoxRef = useRef(null)
+  const progressBarRef = useRef(null)
 
   // Fetch videos from backend
   useEffect(() => {
@@ -55,6 +59,8 @@ function VideoFeed() {
       const response = await api.get('/food/reels?limit=50')
       const data = response.data
       const reels = Array.isArray(data) ? data : (data.reels || data.videos || [])
+      // Sort by likes descending (most liked first)
+      reels.sort((a, b) => (b.likes ?? 0) - (a.likes ?? 0))
       setVideos(reels)
     } catch (error) {
       setVideos([])
@@ -322,6 +328,39 @@ function VideoFeed() {
     }, 3000)
   }
 
+  // Format seconds to mm:ss
+  const formatTime = (seconds) => {
+    if (!seconds || isNaN(seconds)) return '0:00'
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Handle seeking via mouse/touch drag on progress bar
+  useEffect(() => {
+    const handleSeekMove = (e) => {
+      if (!isSeeking || !progressBarRef.current || !videoRef.current) return
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX
+      const rect = progressBarRef.current.getBoundingClientRect()
+      const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+      videoRef.current.currentTime = percent * videoRef.current.duration
+    }
+    const handleSeekEnd = () => setIsSeeking(false)
+
+    if (isSeeking) {
+      window.addEventListener('mousemove', handleSeekMove)
+      window.addEventListener('mouseup', handleSeekEnd)
+      window.addEventListener('touchmove', handleSeekMove)
+      window.addEventListener('touchend', handleSeekEnd)
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleSeekMove)
+      window.removeEventListener('mouseup', handleSeekEnd)
+      window.removeEventListener('touchmove', handleSeekMove)
+      window.removeEventListener('touchend', handleSeekEnd)
+    }
+  }, [isSeeking])
+
   const handleVideoTap = (e) => {
     // Don't toggle if tapping a button
     if (e.target.closest('button')) return
@@ -338,6 +377,8 @@ function VideoFeed() {
     // Reset info box state for new video
     setInfoExpanded(false)
     setInfoMaxExpanded(false)
+    setVideoProgress(0)
+    setVideoDuration(0)
     if (!videoRef.current || !videos[currentVideo]) return
     try {
       // Reset the media element source and playback based on isPlaying
@@ -434,10 +475,18 @@ function VideoFeed() {
                 controls={false}
                 onLoadedMetadata={() => {
                   try {
-                    if (isPlaying && videoRef.current) {
-                      videoRef.current.play().catch(() => { })
+                    if (videoRef.current) {
+                      setVideoDuration(videoRef.current.duration || 0)
+                      if (isPlaying) {
+                        videoRef.current.play().catch(() => { })
+                      }
                     }
                   } catch (err) { /* ignore */ }
+                }}
+                onTimeUpdate={() => {
+                  if (videoRef.current && !isSeeking) {
+                    setVideoProgress(videoRef.current.currentTime)
+                  }
                 }}
                 onCanPlay={() => {
                   if (videoRef.current && isPlaying) {
@@ -449,6 +498,43 @@ function VideoFeed() {
               {/* Tap overlay — dims only when controls visible */}
               <div className={`absolute inset-0 transition-opacity duration-300 ${showControls ? 'bg-black/30' : 'bg-transparent'}`} />
 
+              {/* YouTube-style Progress Bar — toggles with controls */}
+              <div
+                ref={progressBarRef}
+                className={`absolute bottom-0 left-0 right-0 z-20 group cursor-pointer transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                style={{ height: '24px', display: 'flex', alignItems: 'flex-end' }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (!videoRef.current || !progressBarRef.current) return
+                  const rect = progressBarRef.current.getBoundingClientRect()
+                  const clickX = e.clientX - rect.left
+                  const percent = clickX / rect.width
+                  videoRef.current.currentTime = percent * videoRef.current.duration
+                }}
+                onMouseDown={(e) => {
+                  e.stopPropagation()
+                  setIsSeeking(true)
+                }}
+                onTouchStart={(e) => {
+                  e.stopPropagation()
+                  setIsSeeking(true)
+                }}
+              >
+                {/* Time display on hover/active */}
+                <div className={`absolute -top-6 left-0 right-0 px-2 flex justify-between text-[10px] text-white/70 transition-opacity duration-200 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
+                  <span>{formatTime(videoProgress)}</span>
+                  <span>{formatTime(videoDuration)}</span>
+                </div>
+                {/* Track background */}
+                <div className="w-full h-[3px] group-hover:h-[5px] transition-all duration-150 bg-white/30 rounded-full overflow-hidden">
+                  {/* Filled progress */}
+                  <div
+                    className="h-full bg-red-500 rounded-full transition-none"
+                    style={{ width: videoDuration > 0 ? `${(videoProgress / videoDuration) * 100}%` : '0%' }}
+                  />
+                </div>
+              </div>
+
               {/* Play/Pause center button */}
               <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <button
@@ -459,8 +545,8 @@ function VideoFeed() {
                 </button>
               </div>
 
-              {/* Video Info — bottom */}
-              <div className={`absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white transition-all duration-300 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+              {/* Video Info — bottom (positioned above progress bar) */}
+              <div className={`absolute bottom-1 left-0 right-0 p-4 sm:p-6 text-white transition-all duration-300 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
 
                 {videos[currentVideo].hashtags && videos[currentVideo].hashtags.length > 0 && (
                   <div className="mb-3 flex flex-wrap gap-2">
