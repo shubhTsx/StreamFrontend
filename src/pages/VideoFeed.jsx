@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Heart, MessageCircle, Share, Bookmark, Play, Pause, Volume2, VolumeX, X, Send, Maximize, Minimize } from 'lucide-react'
+import { Heart, MessageCircle, Share, Bookmark, Play, Pause, Volume2, VolumeX, X, Send, Maximize, Minimize, ChevronUp } from 'lucide-react'
 import GlassCard from '../ui/GlassCard.jsx'
 import api from '../utils/api'
 
@@ -19,8 +19,11 @@ function VideoFeed() {
   const [loading, setLoading] = useState(true)
   const [showControls, setShowControls] = useState(true)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [infoExpanded, setInfoExpanded] = useState(false)
+  const [infoMaxExpanded, setInfoMaxExpanded] = useState(false)
   const videoRef = useRef(null)
   const controlsTimer = useRef(null)
+  const infoBoxRef = useRef(null)
 
   // Fetch videos from backend
   useEffect(() => {
@@ -332,6 +335,9 @@ function VideoFeed() {
 
   // Ensure video updates correctly when switching items
   useEffect(() => {
+    // Reset info box state for new video
+    setInfoExpanded(false)
+    setInfoMaxExpanded(false)
     if (!videoRef.current || !videos[currentVideo]) return
     try {
       // Reset the media element source and playback based on isPlaying
@@ -401,7 +407,7 @@ function VideoFeed() {
   }
 
   return (
-    <div id="video-player-container" className="h-screen overflow-hidden bg-slate-950" onWheel={onWheel} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div id="video-player-container" className="video-feed-container overflow-hidden bg-slate-950" onWheel={onWheel} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       <div className="relative h-full" style={fullscreenStyle}>
         {/* Video Container */}
         <div className="relative h-full">
@@ -420,7 +426,7 @@ function VideoFeed() {
                 ref={videoRef}
                 key={videos[currentVideo].id}
                 src={videos[currentVideo].videoUrl}
-                className={`absolute inset-0 w-full h-full ${isFullscreen ? 'object-contain' : 'object-cover'}`}
+                className="absolute inset-0 w-full h-full object-cover"
                 autoPlay
                 muted={isMuted}
                 playsInline
@@ -454,12 +460,10 @@ function VideoFeed() {
               </div>
 
               {/* Video Info — bottom */}
-              <div className={`absolute bottom-0 left-0 right-0 p-6 text-white transition-all duration-300 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-                <h3 className="text-xl font-semibold mb-2">{videos[currentVideo].title || videos[currentVideo].foodItem?.name || 'Untitled'}</h3>
-                <p className="text-white/70 text-sm mb-4">{videos[currentVideo].description}</p>
+              <div className={`absolute bottom-0 left-0 right-0 p-4 sm:p-6 text-white transition-all duration-300 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
 
                 {videos[currentVideo].hashtags && videos[currentVideo].hashtags.length > 0 && (
-                  <div className="mb-4 flex flex-wrap gap-2">
+                  <div className="mb-3 flex flex-wrap gap-2">
                     {videos[currentVideo].hashtags.map((tag, index) => (
                       <span key={index} className="px-2 py-1 rounded-full text-xs bg-white/20 text-white">{tag}</span>
                     ))}
@@ -467,22 +471,52 @@ function VideoFeed() {
                 )}
 
                 {videos[currentVideo].location && (
-                  <div className="mb-4 flex items-center gap-2 text-white/80 text-sm">
+                  <div className="mb-3 flex items-center gap-2 text-white/80 text-sm">
                     <span>📍</span>
                     <span>{videos[currentVideo].location}</span>
                   </div>
                 )}
 
-                {videos[currentVideo].foodItem && (
-                  <div className="mb-4 p-3 rounded-xl bg-slate-800/60 backdrop-blur-sm border border-slate-700/50">
-                    <div>
-                      <h4 className="font-semibold text-slate-200">{videos[currentVideo].foodItem.name}</h4>
-                      {videos[currentVideo].foodItem.ingredients && (
-                        <p className="text-sm text-slate-400">{videos[currentVideo].foodItem.ingredients}</p>
-                      )}
-                    </div>
+                {/* Expandable Info Box */}
+                <div
+                  ref={infoBoxRef}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (!infoExpanded) {
+                      setInfoExpanded(true)
+                    } else if (!infoMaxExpanded) {
+                      setInfoMaxExpanded(true)
+                    } else {
+                      setInfoExpanded(false)
+                      setInfoMaxExpanded(false)
+                    }
+                  }}
+                  className={`mb-3 p-3 rounded-xl bg-slate-800/70 backdrop-blur-sm border border-slate-700/50 cursor-pointer transition-all duration-300 ${infoMaxExpanded ? 'max-h-[60vh]' : infoExpanded ? 'max-h-[30vh]' : 'max-h-[60px]'
+                    } overflow-hidden`}
+                  onScroll={(e) => {
+                    e.stopPropagation()
+                    if (infoExpanded && !infoMaxExpanded) {
+                      const el = e.target
+                      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+                        setInfoMaxExpanded(true)
+                      }
+                    }
+                  }}
+                  style={{ overflowY: infoExpanded ? 'auto' : 'hidden' }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="font-semibold text-slate-200 text-sm sm:text-base truncate">
+                      {videos[currentVideo].title || videos[currentVideo].foodItem?.name || 'Untitled'}
+                    </h4>
+                    <ChevronUp
+                      size={16}
+                      className={`text-slate-400 flex-shrink-0 transition-transform duration-300 ${infoExpanded ? 'rotate-180' : 'rotate-0'}`}
+                    />
                   </div>
-                )}
+                  <p className={`text-sm text-slate-400 mt-1 ${!infoExpanded ? 'line-clamp-1' : ''}`}>
+                    {videos[currentVideo].description || ''}
+                  </p>
+                </div>
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-4">
@@ -538,12 +572,7 @@ function VideoFeed() {
           </AnimatePresence>
         </div>
 
-        {/* Navigation indicator removed as per request */}
 
-        {/* Scroll Instructions */}
-        <div className="absolute bottom-4 right-4 text-slate-500 text-sm">
-          Scroll to browse
-        </div>
       </div>
 
       {/* Comments Modal - Instagram Style */}

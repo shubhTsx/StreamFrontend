@@ -16,6 +16,7 @@ function RootLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const isAdmin = userType === 'partner'
+  const isVideoRoute = location.pathname === '/videos'
 
   useEffect(() => {
     const userData = localStorage.getItem('user')
@@ -187,12 +188,12 @@ function RootLayout() {
 
       <MobileHeader />
 
-      <main className="pt-16 lg:pl-64 lg:pt-20 pb-20 lg:pb-8">
+      <main className={isVideoRoute ? 'pt-16 pb-20 lg:pl-64 lg:pt-20 lg:pb-0 overflow-hidden' : 'pt-16 lg:pl-64 lg:pt-20 pb-20 lg:pb-8'}>
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="min-h-[calc(100vh-5rem)] lg:min-h-[calc(100vh-5rem)]"
+          className={isVideoRoute ? 'overflow-hidden' : 'min-h-[calc(100vh-5rem)] lg:min-h-[calc(100vh-5rem)]'}
         >
           <Outlet />
         </motion.div>
@@ -200,12 +201,12 @@ function RootLayout() {
 
       <MobileNavigation />
 
-      <footer className="hidden lg:block border-t border-slate-800 py-6">
+      {!isVideoRoute && <footer className="hidden lg:block border-t border-slate-800 py-6">
         <div className="ml-64 px-6 flex items-center justify-between text-xs text-slate-500">
           <span>© 2025 CloudDrive</span>
           <span className="flex items-center gap-2"><Cloud size={14} /> Video streaming platform</span>
         </div>
-      </footer>
+      </footer>}
     </div>
   )
 }

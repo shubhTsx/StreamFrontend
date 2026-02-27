@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Search, Bell, User, Cloud } from 'lucide-react'
+import { Menu, X, Bell, Cloud } from 'lucide-react'
 import GlassCard from '../ui/GlassCard.jsx'
 import { useNavigate, Link } from 'react-router-dom'
 import { authEvents } from '../utils/authEvents'
@@ -70,19 +70,7 @@ function MobileHeader() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors">
-              <Search size={18} className="text-slate-300" />
-            </button>
-            <button className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors relative">
-              <Bell size={18} className="text-slate-300" />
-              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-blue-500 rounded-full" />
-            </button>
-            <button
-              onClick={() => setIsProfileOpen(!isProfileOpen)}
-              className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
-            >
-              <User size={18} className="text-slate-300" />
-            </button>
+
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"

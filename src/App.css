@@ -23,3 +23,13 @@ html, body, #root {
   background: rgba(59, 130, 246, 0.08);
   border-color: rgba(59, 130, 246, 0.2);
 }
+
+/* Video feed container — uses dvh to handle mobile browser chrome */
+.video-feed-container {
+  height: calc(100dvh - 9rem); /* mobile: subtract header (4rem) + bottom nav (5rem) */
+}
+@media (min-width: 1024px) {
+  .video-feed-container {
+    height: calc(100vh - 5rem); /* desktop: subtract header only */
+  }
+}

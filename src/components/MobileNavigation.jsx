@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Home, Search, Video, FolderOpen, HardDrive, User, LogOut } from 'lucide-react'
+import { Home, Search, Video, FolderOpen, HardDrive, User } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { authEvents } from '../utils/authEvents'
@@ -55,10 +55,9 @@ function MobileNavigation() {
             key={item.name}
             to={item.path}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
-                isActive
-                  ? 'bg-blue-500/15 text-blue-400'
-                  : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
+              `flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${isActive
+                ? 'bg-blue-500/15 text-blue-400'
+                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/50'
               }`
             }
           >
@@ -68,17 +67,7 @@ function MobileNavigation() {
             <span className="text-[10px] font-medium">{item.name}</span>
           </NavLink>
         ))}
-        {user && (
-          <button
-            onClick={handleLogout}
-            className="flex flex-col items-center gap-1 p-2 rounded-lg transition-all text-slate-500 hover:text-red-400 hover:bg-slate-800/50"
-          >
-            <motion.div whileTap={{ scale: 0.9 }} transition={{ type: 'spring', stiffness: 400, damping: 17 }}>
-              <LogOut size={20} />
-            </motion.div>
-            <span className="text-[10px] font-medium">Out</span>
-          </button>
-        )}
+
       </div>
     </div>
   )
