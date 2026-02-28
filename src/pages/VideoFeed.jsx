@@ -21,13 +21,13 @@ function VideoFeed() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [infoExpanded, setInfoExpanded] = useState(false)
   const [infoMaxExpanded, setInfoMaxExpanded] = useState(false)
-  const [videoProgress, setVideoProgress] = useState(0)
-  const [videoDuration, setVideoDuration] = useState(0)
+  const [videoProgresses, setVideoProgresses] = useState({})
+  const [videoDurations, setVideoDurations] = useState({})
   const [isSeeking, setIsSeeking] = useState(false)
-  const videoRef = useRef(null)
-  const controlsTimer = useRef(null)
-  const infoBoxRef = useRef(null)
-  const progressBarRef = useRef(null)
+  const videoRefs = useRef({})
+  const controlsTimers = useRef({})
+  const progressBarRefs = useRef({})
+  const feedRef = useRef(null)
 
   // Fetch videos from backend
   useEffect(() => {
@@ -213,58 +213,53 @@ function VideoFeed() {
     }
   }
 
-  const handleScroll = (direction) => {
-    if (direction === 'up' && currentVideo > 0) {
-      setCurrentVideo(currentVideo - 1)
-    } else if (direction === 'down' && currentVideo < videos.length - 1) {
-      setCurrentVideo(currentVideo + 1)
+  // Handle scroll detection for current video using IntersectionObserver
+  useEffect(() => {
+    if (!feedRef.current || videos.length === 0) return
+
+    const observerOptions = {
+      root: feedRef.current,
+      rootMargin: '0px',
+      threshold: 0.6 // Trigger when 60% of the video is visible
     }
-  }
 
-  // Wheel scroll to navigate like reels
-  const wheelTimeout = useRef(null)
-  const onWheel = (e) => {
-    // Debounce to prevent skipping multiple videos per gesture
-    if (wheelTimeout.current) return
-    wheelTimeout.current = setTimeout(() => {
-      wheelTimeout.current = null
-    }, 350)
-    if (e.deltaY > 0) handleScroll('down')
-    else if (e.deltaY < 0) handleScroll('up')
-  }
-
-  // Touch swipe to navigate on mobile
-  const touchStartY = useRef(null)
-  const onTouchStart = (e) => {
-    touchStartY.current = e.touches[0].clientY
-  }
-  const onTouchEnd = (e) => {
-    if (touchStartY.current === null) return
-    const endY = e.changedTouches[0].clientY
-    const diff = touchStartY.current - endY
-    if (Math.abs(diff) > 40) {
-      if (diff > 0) handleScroll('down')
-      else handleScroll('up')
+    const observerCallback = (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const index = parseInt(entry.target.getAttribute('data-index'), 10)
+          if (!isNaN(index) && index !== currentVideo) {
+            setCurrentVideo(index)
+          }
+        }
+      })
     }
-    touchStartY.current = null
-  }
 
-  const togglePlayPause = () => {
-    if (videoRef.current) {
+    const observer = new IntersectionObserver(observerCallback, observerOptions)
+
+    // Create an array of elements instead of selecting all
+    const children = Array.from(feedRef.current.children)
+    children.forEach((child) => observer.observe(child))
+
+    return () => observer.disconnect()
+  }, [videos, currentVideo])
+
+  const togglePlayPause = (videoId) => {
+    const video = videoRefs.current[videoId]
+    if (video) {
       if (isPlaying) {
-        videoRef.current.pause()
+        video.pause()
       } else {
-        videoRef.current.play()
+        video.play().catch(() => { })
       }
       setIsPlaying(!isPlaying)
     }
   }
 
   const toggleMute = () => {
-    if (videoRef.current) {
-      videoRef.current.muted = !isMuted
-      setIsMuted(!isMuted)
-    }
+    Object.values(videoRefs.current).forEach(video => {
+      if (video) video.muted = !isMuted
+    })
+    setIsMuted(!isMuted)
   }
 
   const [orientationLocked, setOrientationLocked] = useState(false)
@@ -320,10 +315,10 @@ function VideoFeed() {
   } : {}
 
   // Auto-hide controls after 3 seconds
-  const resetControlsTimer = () => {
-    if (controlsTimer.current) clearTimeout(controlsTimer.current)
+  const resetControlsTimer = (videoId) => {
+    if (controlsTimers.current[videoId]) clearTimeout(controlsTimers.current[videoId])
     setShowControls(true)
-    controlsTimer.current = setTimeout(() => {
+    controlsTimers.current[videoId] = setTimeout(() => {
       if (isPlaying) setShowControls(false)
     }, 3000)
   }
@@ -361,52 +356,44 @@ function VideoFeed() {
     }
   }, [isSeeking])
 
-  const handleVideoTap = (e) => {
+  const handleVideoTap = (e, videoId) => {
     // Don't toggle if tapping a button
     if (e.target.closest('button')) return
     if (showControls) {
       setShowControls(false)
-      if (controlsTimer.current) clearTimeout(controlsTimer.current)
+      if (controlsTimers.current[videoId]) clearTimeout(controlsTimers.current[videoId])
     } else {
-      resetControlsTimer()
+      resetControlsTimer(videoId)
     }
   }
 
   // Ensure video updates correctly when switching items
   useEffect(() => {
-    // Reset info box state for new video
-    setInfoExpanded(false)
-    setInfoMaxExpanded(false)
-    setVideoProgress(0)
-    setVideoDuration(0)
-    if (!videoRef.current || !videos[currentVideo]) return
-    try {
-      // Reset the media element source and playback based on isPlaying
-      videoRef.current.muted = isMuted
-      videoRef.current.load() // Force reload the video
-      const playIfNeeded = async () => {
+    // Setup playback state appropriately for all videos based on intersection
+    videos.forEach((video, index) => {
+      const videoEl = videoRefs.current[video.id]
+      if (!videoEl) return
+
+      if (index === currentVideo) {
         if (isPlaying) {
-          try {
-            await videoRef.current.play()
-          } catch (err) {
-            // Play was prevented (autoplay policy)
-          }
+          videoEl.play().catch(() => { })
         } else {
-          videoRef.current.pause()
+          videoEl.pause()
         }
+      } else {
+        videoEl.pause()
+        videoEl.currentTime = 0 // Reset other videos
       }
-      // Small delay to ensure video is loaded
-      setTimeout(playIfNeeded, 100)
-    } catch (err) {
-      // Silently handle video switch errors
-    }
+    })
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentVideo])
+  }, [currentVideo, isPlaying, videos])
 
   // Keep mute state in sync if user toggles
   useEffect(() => {
-    if (!videoRef.current) return
-    videoRef.current.muted = isMuted
+    Object.values(videoRefs.current).forEach(video => {
+      if (video) video.muted = isMuted
+    })
   }, [isMuted])
 
   // Require login to stream videos
@@ -448,68 +435,63 @@ function VideoFeed() {
   }
 
   return (
-    <div id="video-player-container" className="video-feed-container overflow-hidden bg-slate-950" onWheel={onWheel} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <div className="relative h-full" style={fullscreenStyle}>
-        {/* Video Container */}
-        <div className="relative h-full">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentVideo}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: 'linear' }}
-              className={`relative h-full w-full ${isFullscreen ? 'bg-black' : ''}`}
-              onClick={handleVideoTap}
-            >
+    <div id="video-player-container" className="video-feed-container overflow-hidden bg-slate-950">
+      <div
+        ref={feedRef}
+        className="relative h-full w-full overflow-y-scroll snap-y snap-mandatory scrollbar-none"
+        style={fullscreenStyle}
+      >
+        {videos.map((video, index) => (
+          <div
+            key={video.id}
+            data-index={index}
+            className="w-full h-full snap-start snap-always relative flex-shrink-0"
+          >
+            <div className={`relative h-full w-full ${isFullscreen ? 'bg-black' : ''}`} onClick={(e) => handleVideoTap(e, video.id)}>
               {/* Video Element */}
               <video
-                ref={videoRef}
-                key={videos[currentVideo].id}
-                src={videos[currentVideo].videoUrl}
+                ref={el => videoRefs.current[video.id] = el}
+                src={video.videoUrl}
                 className="absolute inset-0 w-full h-full object-cover"
-                autoPlay
+                autoPlay={index === currentVideo}
                 muted={isMuted}
                 playsInline
                 loop
                 controls={false}
-                onLoadedMetadata={() => {
+                onLoadedMetadata={(e) => {
                   try {
-                    if (videoRef.current) {
-                      setVideoDuration(videoRef.current.duration || 0)
-                      if (isPlaying) {
-                        videoRef.current.play().catch(() => { })
-                      }
-                    }
+                    setVideoDurations(prev => ({ ...prev, [video.id]: e.target.duration || 0 }))
                   } catch (err) { /* ignore */ }
                 }}
-                onTimeUpdate={() => {
-                  if (videoRef.current && !isSeeking) {
-                    setVideoProgress(videoRef.current.currentTime)
+                onTimeUpdate={(e) => {
+                  if (!isSeeking) {
+                    setVideoProgresses(prev => ({ ...prev, [video.id]: e.target.currentTime }))
                   }
                 }}
-                onCanPlay={() => {
-                  if (videoRef.current && isPlaying) {
-                    videoRef.current.play().catch(() => { })
+                onCanPlay={(e) => {
+                  if (index === currentVideo && isPlaying) {
+                    e.target.play().catch(() => { })
                   }
                 }}
               />
 
               {/* Tap overlay — dims only when controls visible */}
-              <div className={`absolute inset-0 transition-opacity duration-300 ${showControls ? 'bg-black/30' : 'bg-transparent'}`} />
+              <div className={`absolute inset-0 transition-opacity duration-300 ${showControls && index === currentVideo ? 'bg-black/30' : 'bg-transparent'}`} />
 
               {/* YouTube-style Progress Bar — toggles with controls */}
               <div
-                ref={progressBarRef}
-                className={`absolute bottom-0 left-0 right-0 z-20 group cursor-pointer transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                ref={el => progressBarRefs.current[video.id] = el}
+                className={`absolute bottom-0 left-0 right-0 z-20 group cursor-pointer transition-opacity duration-300 ${showControls && index === currentVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                 style={{ height: '24px', display: 'flex', alignItems: 'flex-end' }}
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (!videoRef.current || !progressBarRef.current) return
-                  const rect = progressBarRef.current.getBoundingClientRect()
+                  const currentProgressBar = progressBarRefs.current[video.id]
+                  const currentVideoRef = videoRefs.current[video.id]
+                  if (!currentVideoRef || !currentProgressBar) return
+                  const rect = currentProgressBar.getBoundingClientRect()
                   const clickX = e.clientX - rect.left
                   const percent = clickX / rect.width
-                  videoRef.current.currentTime = percent * videoRef.current.duration
+                  currentVideoRef.currentTime = percent * currentVideoRef.duration
                 }}
                 onMouseDown={(e) => {
                   e.stopPropagation()
@@ -520,127 +502,123 @@ function VideoFeed() {
                   setIsSeeking(true)
                 }}
               >
-                {/* Time display on hover/active */}
-                <div className={`absolute -top-6 left-0 right-0 px-2 flex justify-between text-[10px] text-white/70 transition-opacity duration-200 ${showControls ? 'opacity-100' : 'opacity-0'}`}>
-                  <span>{formatTime(videoProgress)}</span>
-                  <span>{formatTime(videoDuration)}</span>
-                </div>
                 {/* Track background */}
                 <div className="w-full h-[3px] group-hover:h-[5px] transition-all duration-150 bg-white/30 rounded-full overflow-hidden">
                   {/* Filled progress */}
                   <div
                     className="h-full bg-red-500 rounded-full transition-none"
-                    style={{ width: videoDuration > 0 ? `${(videoProgress / videoDuration) * 100}%` : '0%' }}
+                    style={{ width: (videoDurations[video.id] || 0) > 0 ? `${((videoProgresses[video.id] || 0) / videoDurations[video.id]) * 100}%` : '0%' }}
                   />
                 </div>
               </div>
 
               {/* Play/Pause center button */}
-              <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${showControls && index === currentVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <button
-                  onClick={(e) => { e.stopPropagation(); togglePlayPause(); resetControlsTimer() }}
+                  onClick={(e) => { e.stopPropagation(); togglePlayPause(video.id); resetControlsTimer(video.id) }}
                   className="p-4 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all"
                 >
                   {isPlaying ? <Pause size={32} className="text-white" /> : <Play size={32} className="text-white" />}
                 </button>
               </div>
 
-              {/* Video Info — bottom (positioned above progress bar) */}
-              <div className={`absolute bottom-1 left-0 right-0 p-4 sm:p-6 text-white transition-all duration-300 ${showControls ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+              {/* Video Info — bottom (positioned above progress bar with extra bottom padding) */}
+              <div className={`absolute bottom-6 left-0 right-0 p-4 sm:p-6 text-white transition-all duration-300 pointer-events-none ${showControls && index === currentVideo ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+                <div className="pointer-events-auto">
 
-                {videos[currentVideo].hashtags && videos[currentVideo].hashtags.length > 0 && (
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    {videos[currentVideo].hashtags.map((tag, index) => (
-                      <span key={index} className="px-2 py-1 rounded-full text-xs bg-white/20 text-white">{tag}</span>
-                    ))}
-                  </div>
-                )}
+                  {video.hashtags && video.hashtags.length > 0 && (
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      {video.hashtags.map((tag, tagIndex) => (
+                        <span key={tagIndex} className="px-2 py-1 rounded-full text-xs bg-white/20 text-white">{tag}</span>
+                      ))}
+                    </div>
+                  )}
 
-                {videos[currentVideo].location && (
-                  <div className="mb-3 flex items-center gap-2 text-white/80 text-sm">
-                    <span>📍</span>
-                    <span>{videos[currentVideo].location}</span>
-                  </div>
-                )}
+                  {video.location && (
+                    <div className="mb-3 flex items-center gap-2 text-white/80 text-sm">
+                      <span>📍</span>
+                      <span>{video.location}</span>
+                    </div>
+                  )}
 
-                {/* Expandable Info Box */}
-                <div
-                  ref={infoBoxRef}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (!infoExpanded) {
-                      setInfoExpanded(true)
-                    } else if (!infoMaxExpanded) {
-                      setInfoMaxExpanded(true)
-                    } else {
-                      setInfoExpanded(false)
-                      setInfoMaxExpanded(false)
-                    }
-                  }}
-                  className={`mb-3 p-3 rounded-xl bg-slate-800/70 backdrop-blur-sm border border-slate-700/50 cursor-pointer transition-all duration-300 ${infoMaxExpanded ? 'max-h-[60vh]' : infoExpanded ? 'max-h-[30vh]' : 'max-h-[60px]'
-                    } overflow-hidden`}
-                  onScroll={(e) => {
-                    e.stopPropagation()
-                    if (infoExpanded && !infoMaxExpanded) {
-                      const el = e.target
-                      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+                  {/* Expandable Info Box */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (!infoExpanded) {
+                        setInfoExpanded(true)
+                      } else if (!infoMaxExpanded) {
                         setInfoMaxExpanded(true)
+                      } else {
+                        setInfoExpanded(false)
+                        setInfoMaxExpanded(false)
                       }
-                    }
-                  }}
-                  style={{ overflowY: infoExpanded ? 'auto' : 'hidden' }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <h4 className="font-semibold text-slate-200 text-sm sm:text-base truncate">
-                      {videos[currentVideo].title || videos[currentVideo].foodItem?.name || 'Untitled'}
-                    </h4>
-                    <ChevronUp
-                      size={16}
-                      className={`text-slate-400 flex-shrink-0 transition-transform duration-300 ${infoExpanded ? 'rotate-180' : 'rotate-0'}`}
-                    />
+                    }}
+                    className={`mb-3 p-3 rounded-xl bg-slate-800/70 backdrop-blur-sm border border-slate-700/50 cursor-pointer transition-all duration-300 ${infoMaxExpanded ? 'max-h-[60vh]' : infoExpanded ? 'max-h-[30vh]' : 'max-h-[60px]'
+                      } overflow-hidden`}
+                    onScroll={(e) => {
+                      e.stopPropagation()
+                      if (infoExpanded && !infoMaxExpanded) {
+                        const el = e.target
+                        if (el.scrollTop + el.clientHeight >= el.scrollHeight - 10) {
+                          setInfoMaxExpanded(true)
+                        }
+                      }
+                    }}
+                    style={{ overflowY: infoExpanded ? 'auto' : 'hidden' }}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="font-semibold text-slate-200 text-sm sm:text-base truncate">
+                        {video.title || video.foodItem?.name || 'Untitled'}
+                      </h4>
+                      <ChevronUp
+                        size={16}
+                        className={`text-slate-400 flex-shrink-0 transition-transform duration-300 ${infoExpanded ? 'rotate-180' : 'rotate-0'}`}
+                      />
+                    </div>
+                    <p className={`text-sm text-slate-400 mt-1 ${!infoExpanded ? 'line-clamp-1' : ''}`}>
+                      {video.description || ''}
+                    </p>
                   </div>
-                  <p className={`text-sm text-slate-400 mt-1 ${!infoExpanded ? 'line-clamp-1' : ''}`}>
-                    {videos[currentVideo].description || ''}
-                  </p>
-                </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleLike(videos[currentVideo].id) }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${likedVideos.has(videos[currentVideo].id) ? 'bg-red-500 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
-                  >
-                    <Heart size={20} fill={likedVideos.has(videos[currentVideo].id) ? 'currentColor' : 'none'} />
-                    {videos[currentVideo].likes ?? 0}
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-4">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleLike(video.id) }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${likedVideos.has(video.id) ? 'bg-red-500 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
+                    >
+                      <Heart size={20} fill={likedVideos.has(video.id) ? 'currentColor' : 'none'} />
+                      {video.likes ?? 0}
+                    </button>
 
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleShowComments(videos[currentVideo].id) }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all"
-                  >
-                    <MessageCircle size={20} />
-                    {videos[currentVideo].comments + (comments[videos[currentVideo].id]?.length || 0)}
-                  </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleShowComments(video.id) }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all"
+                    >
+                      <MessageCircle size={20} />
+                      {video.comments + (comments[video.id]?.length || 0)}
+                    </button>
 
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleShare(videos[currentVideo].id) }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all"
-                  >
-                    <Share size={20} />
-                    Share
-                  </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleShare(video.id) }}
+                      className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-all"
+                    >
+                      <Share size={20} />
+                      Share
+                    </button>
 
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleSave(videos[currentVideo].id) }}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${savedVideos.has(videos[currentVideo].id) ? 'bg-yellow-500 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
-                  >
-                    <Bookmark size={20} fill={savedVideos.has(videos[currentVideo].id) ? 'currentColor' : 'none'} />
-                  </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleSave(video.id) }}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${savedVideos.has(video.id) ? 'bg-yellow-500 text-white' : 'bg-white/20 text-white hover:bg-white/30'}`}
+                    >
+                      <Bookmark size={20} fill={savedVideos.has(video.id) ? 'currentColor' : 'none'} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
               {/* Controls - Top Right */}
-              <div className={`absolute top-4 right-4 flex items-center gap-2 transition-opacity duration-300 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+              <div className={`absolute top-4 right-4 flex items-center gap-2 transition-opacity duration-300 ${showControls && index === currentVideo ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <button
                   onClick={(e) => { e.stopPropagation(); toggleFullscreen() }}
                   className="p-2 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all"
@@ -654,11 +632,9 @@ function VideoFeed() {
                   {isMuted ? <VolumeX size={20} className="text-white" /> : <Volume2 size={20} className="text-white" />}
                 </button>
               </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Comments Modal - Instagram Style */}
@@ -748,7 +724,7 @@ function VideoFeed() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </div >
   )
 }
 

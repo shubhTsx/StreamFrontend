@@ -384,7 +384,7 @@ function PartnerDashboard() {
     <div className="min-h-screen bg-slate-950 text-slate-200">
       {/* Header */}
       <div className="bg-slate-900/60 backdrop-blur-xl border-b border-slate-800 p-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-200">Admin Dashboard</h1>
             <p className="text-slate-500 text-sm">
@@ -394,7 +394,7 @@ function PartnerDashboard() {
               }
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             {!partnerProfile?.restaurant?.isRegistered && (
               <button
                 onClick={() => setShowRestaurantForm(true)}
@@ -1303,7 +1303,7 @@ function PartnerDashboard() {
                     ) : (
                       <>
                         <Video size={18} />
-                        Add Media 
+                        Add Media
                       </>
                     )}
                   </button>

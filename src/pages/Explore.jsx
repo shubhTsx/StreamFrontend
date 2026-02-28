@@ -191,7 +191,7 @@ function Explore() {
       ) : (
         selectedCategory !== 'All' ? (
           // Single category — flat list
-          <div className={viewMode === 'grid' ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-2'}>
+          <div className={viewMode === 'grid' ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6' : 'space-y-2'}>
             {filteredVideos.map((video) => {
               const vid = video.id || video._id
               const thumb = video.thumbnail || video.image
@@ -200,8 +200,8 @@ function Explore() {
 
               return (
                 <motion.div key={vid} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                  <GlassCard variant="file" className={viewMode === 'list' ? 'p-4 flex items-center gap-4' : 'p-4'}>
-                    <div className={viewMode === 'grid' ? 'aspect-video rounded-lg bg-slate-800 overflow-hidden mb-4 relative group' : 'w-24 h-16 rounded-lg bg-slate-800 overflow-hidden shrink-0 relative'}>
+                  <GlassCard variant="file" className={viewMode === 'list' ? 'p-3 flex items-center gap-4' : 'p-3'}>
+                    <div className={viewMode === 'grid' ? 'aspect-[3/4] rounded-lg bg-slate-800 overflow-hidden mb-3 relative group' : 'w-24 h-32 rounded-lg bg-slate-800 overflow-hidden shrink-0 relative'}>
                       {thumb ? (
                         <img src={thumb} alt={title} className="w-full h-full object-cover" />
                       ) : (
@@ -211,15 +211,15 @@ function Explore() {
                         <span className="p-3 rounded-full bg-white/20 hover:bg-white/30"><Play size={24} className="text-white" /></span>
                       </Link>
                     </div>
-                    <div className={viewMode === 'grid' ? 'space-y-2' : 'flex-1 min-w-0'}>
-                      <h3 className="font-medium text-slate-200 truncate">{title}</h3>
-                      {viewMode === 'grid' && <p className="text-sm text-slate-500 line-clamp-2">{desc}</p>}
+                    <div className={viewMode === 'grid' ? 'space-y-1.5' : 'flex-1 min-w-0'}>
+                      <h3 className="font-medium text-slate-200 text-sm sm:text-base truncate">{title}</h3>
+                      {viewMode === 'grid' && <p className="text-xs text-slate-500 line-clamp-2">{desc}</p>}
                       <button
                         onClick={() => handleSave(vid)}
-                        className={`w-full mt-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${savedIds.has(vid) ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border border-slate-600'}`}
+                        className={`w-full mt-2 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${savedIds.has(vid) ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border border-slate-600'}`}
                       >
-                        <Bookmark size={16} fill={savedIds.has(vid) ? 'currentColor' : 'none'} />
-                        {savedIds.has(vid) ? 'Saved' : 'Add to Collection'}
+                        <Bookmark size={14} fill={savedIds.has(vid) ? 'currentColor' : 'none'} />
+                        {savedIds.has(vid) ? 'Saved' : 'Save'}
                       </button>
                     </div>
                   </GlassCard>
@@ -244,7 +244,7 @@ function Explore() {
                       View all →
                     </button>
                   </div>
-                  <div className={viewMode === 'grid' ? 'grid sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-2'}>
+                  <div className={viewMode === 'grid' ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6' : 'space-y-2'}>
                     {catVideos.map((video) => {
                       const vid = video.id || video._id
                       const thumb = video.thumbnail || video.image
@@ -253,8 +253,8 @@ function Explore() {
 
                       return (
                         <motion.div key={vid} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
-                          <GlassCard variant="file" className={viewMode === 'list' ? 'p-4 flex items-center gap-4' : 'p-4'}>
-                            <div className={viewMode === 'grid' ? 'aspect-video rounded-lg bg-slate-800 overflow-hidden mb-4 relative group' : 'w-24 h-16 rounded-lg bg-slate-800 overflow-hidden shrink-0 relative'}>
+                          <GlassCard variant="file" className={viewMode === 'list' ? 'p-3 flex items-center gap-4' : 'p-3'}>
+                            <div className={viewMode === 'grid' ? 'aspect-[3/4] rounded-lg bg-slate-800 overflow-hidden mb-3 relative group' : 'w-24 h-32 rounded-lg bg-slate-800 overflow-hidden shrink-0 relative'}>
                               {thumb ? (
                                 <img src={thumb} alt={title} className="w-full h-full object-cover" />
                               ) : (
@@ -264,15 +264,15 @@ function Explore() {
                                 <span className="p-3 rounded-full bg-white/20 hover:bg-white/30"><Play size={24} className="text-white" /></span>
                               </Link>
                             </div>
-                            <div className={viewMode === 'grid' ? 'space-y-2' : 'flex-1 min-w-0'}>
-                              <h3 className="font-medium text-slate-200 truncate">{title}</h3>
-                              {viewMode === 'grid' && <p className="text-sm text-slate-500 line-clamp-2">{desc}</p>}
+                            <div className={viewMode === 'grid' ? 'space-y-1.5' : 'flex-1 min-w-0'}>
+                              <h3 className="font-medium text-slate-200 text-sm sm:text-base truncate">{title}</h3>
+                              {viewMode === 'grid' && <p className="text-xs text-slate-500 line-clamp-2">{desc}</p>}
                               <button
                                 onClick={() => handleSave(vid)}
-                                className={`w-full mt-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 ${savedIds.has(vid) ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border border-slate-600'}`}
+                                className={`w-full mt-2 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1.5 ${savedIds.has(vid) ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-slate-700/50 hover:bg-slate-600/50 text-slate-200 border border-slate-600'}`}
                               >
-                                <Bookmark size={16} fill={savedIds.has(vid) ? 'currentColor' : 'none'} />
-                                {savedIds.has(vid) ? 'Saved' : 'Add to Collection'}
+                                <Bookmark size={14} fill={savedIds.has(vid) ? 'currentColor' : 'none'} />
+                                {savedIds.has(vid) ? 'Saved' : 'Save'}
                               </button>
                             </div>
                           </GlassCard>

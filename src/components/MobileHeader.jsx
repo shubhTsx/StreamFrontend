@@ -71,12 +71,7 @@ function MobileHeader() {
 
           <div className="flex items-center gap-2">
 
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
-            >
-              {isMenuOpen ? <X size={18} className="text-slate-300" /> : <Menu size={18} className="text-slate-300" />}
-            </button>
+            
           </div>
         </div>
       </div>
